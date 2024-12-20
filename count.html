@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 20%;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        #countdown {
+            font-size: 3em;
+            margin: 20px 0;
+        }
+        #message {
+            font-size: 2em;
+            color: red;
+        }
+</style>
+<body>
+    <h1>5秒カウントダウン</h1>
+    <div id="countdown">5</div>
+    <div id="message"></div>
+    <script>
+        let countdownElement = document.getElementById('countdown');
+        let messageElement = document.getElementById('message');
+        let timeLeft = 5;
+
+        const countdown = setInterval(() => {
+            timeLeft--;
+            countdownElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                countdownElement.textContent = '';
+                messageElement.textContent = 'タイムアップ！';
+            }
+        }, 1000);
+    </script>
+
+</body>
+</html>
