@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify 人気楽曲ランキング</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1db954;
+            color: #ffffff;
+        }
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+        }
+        input {
+            width: calc(100% - 120px);
+            max-width: 300px;
+        }
+        button {
+            background-color: #ffffff;
+            color: #1db954;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #1aa34a;
+            color: #ffffff;
+        }
+        #buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #buttons button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 14px;
+            border-radius: 20px;
+            background-color: #ffffff;
+            color: #1db954;
+            font-weight: bold;
+        }
+        #buttons button:hover {
+            background-color: #1aa34a;
+            color: #ffffff;
+        }
+        #result {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .track {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+            background-color: #1e2a24;
+            border-radius: 10px;
+            padding: 10px;
+            width: 150px;
+        }
+        .track img {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .track img:hover {
+            transform: scale(1.1);
+        }
+        .track-info {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .track-info strong {
+            font-size: 14px;
+            color: #ffffff;
+        }
+        .track-info span {
+            font-size: 12px;
+            color: #b3b3b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spotify 人気楽曲ランキング</h1>
+    <div style="text-align: center;">
+        <input type="text" id="search" placeholder="アーティスト名を入力" />
+        <button id="searchBtn">検索</button>
+    </div>
+    <div id="buttons">
+        <button id="showSingles" style="display:none;">シングルを表示</button>
+        <button id="showAlbums" style="display:none;">アルバムを表示</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        const CLIENT_ID = 'a0dd18df2ffd40d1ac584f29c4aab00e';
+        const CLIENT_SECRET = 'ebb4a67ae3014acaafb828ce2d2b6b76';
+
+        let singles = [];
+        let albums = [];
+
+        // トークン取得
+        async function getAccessToken() {
+            const tokenUrl = 'https://accounts.spotify.com/api/token';
+            const params = new URLSearchParams();
+            params.append('grant_type', 'client_credentials');
+
+            const headers = {
+                'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            };
+
+            const response = await fetch(tokenUrl, {
+                method: 'POST',
+                headers,
+                body: params,
+            });
+            const data = await response.json();
+            return data.access_token;
+        }
+
+        // アーティスト検索
+        async function searchArtist(query, accessToken) {
+            const apiUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=1`;
+            const headers = { 'Authorization': `Bearer ${accessToken}` };
+
+            const response = await fetch(apiUrl, { headers });
+            const data = await response.json();
+            return data.artists.items[0];
+        }
+
+        // 人気楽曲取得
+        async function getTopTracks(artistId, accessToken) {
+            const apiUrl = `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=JP`;
+            const headers = { 'Authorization': `Bearer ${accessToken}` };
+
+            const response = await fetch(apiUrl, { headers });
+            const data = await response.json();
+            return data.tracks;
+        }
+
+        // 楽曲分類
+        function classifyTracks(tracks) {
+            singles = [];
+            albums = [];
+
+            tracks.forEach(track => {
+                if (track.album.album_type === 'single') {
+                    singles.push(track);
+                } else {
+                    albums.push(track);
+                }
+            });
+
+            // ボタンを有効化
+            document.getElementById('showSingles').style.display = singles.length > 0 ? 'inline-block' : 'none';
+            document.getElementById('showAlbums').style.display = albums.length > 0 ? 'inline-block' : 'none';
+
+            // 初期表示としてシングルを表示
+            if (singles.length > 0) {
+                displayTracks(singles);
+            } else if (albums.length > 0) {
+                displayTracks(albums);
+            }
+        }
+
+        // 楽曲表示
+        function displayTracks(tracks) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            const createTrackHTML = (track) => `
+                <div class="track">
+                    <a href="${track.external_urls.spotify}" target="_blank">
+                        <img src="${track.album.images[0].url}" alt="${track.name}">
+                    </a>
+                    <div class="track-info">
+                        <strong>${track.name}</strong>
+                        <span>人気度: ${track.popularity}</span>
+                    </div>
+                </div>
+            `;
+
+            tracks.forEach(track => {
+                resultDiv.innerHTML += createTrackHTML(track);
+            });
+        }
+
+        // イベントリスナーをセット
+        document.getElementById('searchBtn').addEventListener('click', async () => {
+            const searchQuery = document.getElementById('search').value;
+            if (!searchQuery) return alert('アーティスト名を入力してください');
+
+            const accessToken = await getAccessToken();
+            const artist = await searchArtist(searchQuery, accessToken);
+            if (!artist) return alert('アーティストが見つかりません');
+
+            const tracks = await getTopTracks(artist.id, accessToken);
+            classifyTracks(tracks);
+        });
+
+        document.getElementById('showSingles').addEventListener('click', () => {
+            displayTracks(singles);
+        });
+
+        document.getElementById('showAlbums').addEventListener('click', () => {
+            displayTracks(albums);
+        });
+    </script>
+</body>
+</html>
